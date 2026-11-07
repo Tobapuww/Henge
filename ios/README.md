@@ -1,69 +1,62 @@
-# Henge for iOS
+# iOS 版 Henge
 
-The Henge app on HengeVM's engine. Build: `ios/scripts/package_ipa.sh` (writes
-`~/Desktop/Henge.ipa`; `--trollstore` writes `Henge.tipa`, for TrollStore and
-TrollStore Lite, without the entitlements TrollStore bans). Needs Xcode 27 or later, xcodegen,
-and the prebuilt pieces
-`ios/scripts/fetch_deps.sh` copies from Husk (StikJIT, the pairing library,
-libslirp and glib for iOS). `HENGE_ENTITLEMENTS` picks the app's entitlements file
-(default `Henge/Henge.entitlements`). A free personal team uses
-`Henge/Henge.personal.entitlements`: pass it to xcodebuild as a build setting
-(`xcodebuild ... HENGE_ENTITLEMENTS=Henge/Henge.personal.entitlements`, since
-`project.yml` sets it and an environment variable does not override that), and to
-the packager as an environment variable (`HENGE_ENTITLEMENTS=... ios/scripts/package_ipa.sh`).
+Henge App，运行在 HengeVM 的引擎之上。构建方式：`ios/scripts/package_ipa.sh`（写出
+`~/Desktop/Henge.ipa`；加上 `--trollstore` 则写出 `Henge.tipa`，供 TrollStore 和
+TrollStore Lite 使用，其中不含 TrollStore 禁止的授权项）。需要 Xcode 27 或更高版本、xcodegen，
+以及由 `ios/scripts/fetch_deps.sh` 从 Husk 复制过来的预编译组件（StikJIT、配对库、
+用于 iOS 的 libslirp 和 glib）。`HENGE_ENTITLEMENTS` 用于指定 App 的授权文件
+（默认是 `Henge/Henge.entitlements`）。免费的个人团队请使用
+`Henge/Henge.personal.entitlements`：把它作为构建设置传给 xcodebuild
+（`xcodebuild ... HENGE_ENTITLEMENTS=Henge/Henge.personal.entitlements`，因为
+`project.yml` 已经设置了它，环境变量无法覆盖），同时也作为环境变量传给
+打包脚本（`HENGE_ENTITLEMENTS=... ios/scripts/package_ipa.sh`）。
 
-- **JIT**: on iOS 26+ (TXM) only an attached debugger can grant executable
-  memory. Henge uses the same machinery as Husk: StikDebug, TrollStore, a
-  jailbreak, or the built-in StikJIT helper (`HengeJITHelper.appex`, with
-  on-device pairing on iOS 27). The app claims one 1 GB region per launch
-  (`JITBootstrap.jitBytes`) and the engine writes through a `vm_remap`'d alias
-  (`host/jit_region.c`, split mode).
-- **Memory**: `increased-memory-limit` is recommended, not required. Once a
-  debugger has attached, guest RAM is kept out of the app's memory limit, and if
-  iOS refuses that it comes from a file on free storage instead.
-- **Machines** are installed on the iPhone from Apple's restore image
-  (`Installer.swift`, [docs/architecture.md](../docs/architecture.md)). A machine
-  can also be exported from the app, or made on a Mac with
-  `tools/export_ios.sh DISK AUX ECID [NAME]` (disk packed with its holes left out,
-  see `host/hvsparse.h`), and dropped on Henge in Finder or picked in Files.
-- **Boot ROM**: fetched from Apple at install, not shipped (`Henge/BootROM.swift`,
-  [docs/architecture.md](../docs/architecture.md)).
-- **Display**: iOS has no ParavirtualizedGraphics framework, so Henge replays the
-  guest's GPU commands with Metal (`devices/pvg_lite.c`, `devices/pvg_metal.m`).
-- **External display**: on iOS 27, `SessionView` registers a SwiftUI
-  `ExternalNonInteractiveAccessory` during a Mac session. On iOS 17–26 iOS offers
-  the display scene to the app delegate instead (`HengeAppDelegate`), and
-  `LegacyExternalDisplay` shows the session there as `ExternalScreenPlan` decides;
-  outside a session the display mirrors the phone. `DisplayRouter` selects
-  one live `CAMetalLayer`, preferring the external surface and returning to the
-  device on disconnect. The phone's session owns the VM and all input; the
-  accessory only presents pixels. The existing guest resolution is unchanged
-  (1920×1080 by default on iPhone), fitted to the monitor without stretching.
-  USB-C video and a hub's keyboard/mouse can be used together when iOS recognizes
-  the peripherals. AirPlay may also provide an external scene, with
-  transport-dependent latency. Run `make test-display-routing`
-  for routing lifecycle checks; `ios/scripts/check_display.sh` also compiles all
-  app Swift sources and the iOS/macOS renderer without linking external libraries.
-  USB-C video is user-confirmed on an iPhone 17 Pro running iOS 27 with
-  development build 0.1/2; activation is automatic during a Mac session. The
-  iOS 17–26 path compiles and its plan is tested, but has not run on hardware yet.
-  Remaining acceptance checks: connect before/during boot, unplug/replug with an
-  idle desktop, rotate the phone, use keyboard/mouse through the dock, and end
-  the session while connected. These individual lifecycle cases, other devices
-  and AirPlay have not been separately verified.
-- **Sharing** (`Henge/Sharing.swift`, `host/share.c`,
-  [docs/architecture.md](../docs/architecture.md)): the Shared folder in Files and
-  the clipboard. The Mac's clipboard follows along; going the other way uses the
-  system paste button, since iOS asks permission when an app reads it on its own.
-- **Hardware input** (`Henge/Hardware.swift`): a keyboard's keys go to the Mac's
-  USB keyboard by HID usage, which is how iOS reports them. A trackpad or mouse
-  goes through GameController with the pointer locked, which iPadOS allows only
-  for an app filling the screen. The first scroll values are logged to
-  `henge.log`, to tune scrolling from a real device.
-- **Chips**: the virtual CPU offers Armv8.5 instructions (`core/sysreg.c`), which
-  macOS uses and which run as they are, so Henge needs an A14 or M1 or newer.
+- **JIT**：在 iOS 26+（TXM）上，只有已附加的调试器才能授予可执行内存。
+  Henge 使用的是与 Husk 相同的一套机制：StikDebug、TrollStore、越狱，
+  或内置的 StikJIT 辅助程序（`HengeJITHelper.appex`，在 iOS 27 上支持设备端配对）。
+  App 每次启动会申请一块 1 GB 的区域（`JITBootstrap.jitBytes`），
+  引擎则通过 `vm_remap` 出来的别名写入（`host/jit_region.c`，分离模式）。
+- **内存**：推荐但不强制使用 `increased-memory-limit`。一旦有调试器附加，
+  客户机内存就不再计入 App 的内存上限；如果 iOS 拒绝这样做，
+  则会改用可用存储空间上的一个文件。
+- **机器**在 iPhone 上从 Apple 的恢复镜像安装
+  （`Installer.swift`，[docs/architecture.md](../docs/architecture.md)）。也可以从
+  App 中导出一台机器，或在 Mac 上用
+  `tools/export_ios.sh DISK AUX ECID [NAME]` 制作（磁盘打包时略去空洞，
+  参见 `host/hvsparse.h`），然后在“访达”里拖到 Henge 上，或在“文件”里选取。
+- **启动 ROM**：安装时从 Apple 获取，不随 App 分发（`Henge/BootROM.swift`，
+  [docs/architecture.md](../docs/architecture.md)）。
+- **显示**：iOS 没有 ParavirtualizedGraphics 框架，所以 Henge 用 Metal 重放
+  客户机的 GPU 命令（`devices/pvg_lite.c`、`devices/pvg_metal.m`）。
+- **外接显示器**：在 iOS 27 上，`SessionView` 会在 Mac 会话期间注册一个 SwiftUI 的
+  `ExternalNonInteractiveAccessory`。在 iOS 17–26 上，iOS 改为把显示场景提供给
+  App 代理（`HengeAppDelegate`），由 `LegacyExternalDisplay` 按 `ExternalScreenPlan`
+  的决定在那里呈现会话；在会话之外，显示器只是镜像手机画面。`DisplayRouter`
+  会选择唯一一个处于活动状态的 `CAMetalLayer`，优先使用外接画面，并在断开时
+  切回设备。手机的会话掌控虚拟机与全部输入；外接配件只负责呈现像素。
+  客户机已有的分辨率保持不变（iPhone 上默认 1920×1080），并按比例适配显示器，
+  不会拉伸。当 iOS 识别出外设时，USB-C 视频与扩展坞上的键盘／鼠标可以同时使用。
+  AirPlay 也可能提供外接场景，延迟取决于传输方式。运行 `make test-display-routing`
+  可做路由生命周期检查；`ios/scripts/check_display.sh` 还能在不链接外部库的情况下
+  编译所有 App 的 Swift 源码以及 iOS/macOS 渲染器。
+  USB-C 视频已在运行 iOS 27 的 iPhone 17 Pro 上、用开发版 0.1/2 由用户确认可用；
+  在 Mac 会话期间会自动启用。iOS 17–26 的路径可以编译，其方案也经过测试，
+  但尚未在真机上运行。还有待验收：在启动前／启动中接入、在空闲桌面上拔插、
+  旋转手机、通过扩展坞使用键盘／鼠标，以及在连接状态下结束会话。
+  这些具体的生命周期情形、其他设备以及 AirPlay 都还没有单独验证。
+- **共享**（`Henge/Sharing.swift`、`host/share.c`、
+  [docs/architecture.md](../docs/architecture.md)）：即“文件”里的共享文件夹和
+  剪贴板。Mac 上的剪贴板会同步过来；反方向则要用系统的粘贴按钮，
+  因为 App 自行读取剪贴板时 iOS 会请求权限。
+- **硬件输入**（`Henge/Hardware.swift`）：键盘的按键按 HID usage 送到 Mac 的
+  USB 键盘，这也是 iOS 上报它们的方式。触控板或鼠标经由 GameController 并锁定
+  指针，iPadOS 只允许全屏的 App 这样做。最初的几个滚动数值会记录到 `henge.log`，
+  以便在真机上调整滚动。
 
-Code from Husk (GPL-2.0-or-later): `Henge/JIT/*`, `Henge/HengeLog.swift`,
-`Henge/Native/henge-ios-jit.*`, `henge-brk.S`, `HengeJITHelper/`. StikJIT is
-MPL-2.0 and idevice MIT (`Henge/Resources/legal/`); `tcg-apple-jit.h` is QEMU's
-(LGPL-2.1). See [docs/licensing.md](../docs/licensing.md).
+- **芯片**：虚拟 CPU 提供 Armv8.5 指令（`core/sysreg.c`），macOS 会用到它们，
+  而且它们按原样执行，因此 Henge 需要 A14 或 M1 及更新一代的芯片。
+
+来自 Husk 的代码（GPL-2.0-or-later）：`Henge/JIT/*`、`Henge/HengeLog.swift`、
+`Henge/Native/henge-ios-jit.*`、`henge-brk.S`、`HengeJITHelper/`。StikJIT 为
+MPL-2.0，idevice 为 MIT（`Henge/Resources/legal/`）；`tcg-apple-jit.h` 属于 QEMU
+（LGPL-2.1）。参见 [docs/licensing.md](../docs/licensing.md)。

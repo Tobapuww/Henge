@@ -9,7 +9,7 @@ final class HengeAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, configurationForConnecting session: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         let config = UISceneConfiguration(name: nil, sessionRole: session.role)
-        HengeLog.log("display", "scene configuration asked for role \(session.role.rawValue)")
+        HengeLog.log("display", "场景配置请求的角色为 \(session.role.rawValue)")
         if session.role == .windowExternalDisplayNonInteractive, LegacyExternalDisplay.offeredToAppDelegate {
             config.delegateClass = ExternalDisplaySceneDelegate.self
         }

@@ -10,7 +10,7 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>zh_CN</string>
 	<key>CFBundleDisplayName</key>
 	<string>Henge</string>
 	<key>CFBundleExecutable</key>
@@ -56,7 +56,7 @@
 		<string>_remotepairing._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Henge uses the local network to pair with this iPhone for JIT, without a computer.</string>
+	<string>Henge 需要使用本地网络，以便无需电脑就能与这台 iPhone 配对并开启 JIT。</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

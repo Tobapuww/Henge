@@ -14,13 +14,13 @@ struct MacOSRelease: Identifiable, Hashable {
     static let all: [MacOSRelease] = [
         MacOSRelease(id: "24G90", name: "macOS Sequoia 15.6.1",
                      url: URL(string: "https://updates.cdn-apple.com/2025SummerFCS/fullrestores/093-10809/CFD6DD38-DAF0-40DA-854F-31AAD1294C6F/UniversalMac_15.6.1_24G90_Restore.ipsw")!,
-                     bytes: 16_035 << 20, note: "Recommended: the version Henge is tested with."),
+                     bytes: 16_035 << 20, note: "推荐：Henge 测试所用的版本。"),
         MacOSRelease(id: "25G83", name: "macOS Tahoe 26.6.2",
                      url: URL(string: "https://updates.cdn-apple.com/2026SummerFCS/fullrestores/140-75212/A2A24B94-1FC1-45A3-93F7-C51B02AF1F4D/UniversalMac_26.6.2_25G83_Restore.ipsw")!,
-                     bytes: 18_856 << 20, note: "Not tested with Henge yet."),
+                     bytes: 18_856 << 20, note: "尚未在 Henge 上测试。"),
         MacOSRelease(id: "26B123", name: "macOS 27.2",
                      url: URL(string: "https://updates.cdn-apple.com/2026FallFCS/c9671975-52db-4fb5-9af2-00217169ba8d/UniversalMac_27.2_26B123_Restore.ipsw")!,
-                     bytes: 24_409 << 20, note: "The newest. Not tested with Henge yet."),
+                     bytes: 24_409 << 20, note: "最新版本。尚未在 Henge 上测试。"),
     ]
 }
 
@@ -89,7 +89,7 @@ final class Installer: NSObject, ObservableObject {
             do {
                 try checkSpace(release)
                 let rom = try await BootROM.file() // before the long download, so a problem shows up at once
-                HengeLog.log("install", "boot ROM ready")
+                HengeLog.log("install", "启动 ROM 已就绪")
                 let ipsw = try await download(release)
                 phase = .preparing
                 var mac = try prepare(name: name, ramMB: ramMB, rom: rom)
@@ -99,10 +99,10 @@ final class Installer: NSObject, ObservableObject {
                 try await install(mac, ipsw: ipsw, cpus: cpus)
                 Machines.shared.add(mac)
                 if !keepImage { try? FileManager.default.removeItem(at: ipsw) }
-                HengeLog.log("install", "\(name): installed \(release.name)")
-                phase = .done("\(release.name) is installed on \(name). Quit Henge (swipe it away) and open it again, then tap Start.")
+                HengeLog.log("install", "\(name)：已安装 \(release.name)")
+                phase = .done("\(release.name) 已安装到 \(name)。请先退出 Henge（从多任务中划掉它）再重新打开，然后点“开始”。")
             } catch {
-                HengeLog.log("install", "failed: \(error.localizedDescription)")
+                HengeLog.log("install", "失败：\(error.localizedDescription)")
                 // A half-installed Mac is no use, and its disk can be many gigabytes. The download stays.
                 if let made, henge_vm_state() != 1 { try? FileManager.default.removeItem(at: made.directory) }
                 phase = .failed(error.localizedDescription)
@@ -115,7 +115,7 @@ final class Installer: NSObject, ObservableObject {
             .volumeAvailableCapacityForImportantUsage ?? 0
         let needed = Self.spaceNeeded(r)
         if free > 0 && free < needed {
-            throw message("This install needs about \(ByteText.string(UInt64(needed))) free; this \(Device.name) has \(ByteText.string(UInt64(free))).")
+            throw message("这次安装大约需要 \(ByteText.string(UInt64(needed))) 可用空间，而这台\(Device.name)只剩 \(ByteText.string(UInt64(free)))。")
         }
     }
 
@@ -126,24 +126,24 @@ final class Installer: NSObject, ObservableObject {
         try FileManager.default.createDirectory(at: Self.imageDirectory, withIntermediateDirectories: true)
         Machines.excludeFromBackup(Self.imageDirectory)
         if Self.haveImage(r) {
-            HengeLog.log("install", "using the downloaded \(r.name)")
+            HengeLog.log("install", "使用已下载的 \(r.name)")
             return dest
         }
         phase = .downloading
         received = 0
         expected = r.bytes
         downloadTarget = dest
-        HengeLog.log("install", "downloading \(r.url.absoluteString)")
+        HengeLog.log("install", "正在下载 \(r.url.absoluteString)")
         for attempt in 1...20 {
             do {
                 return try await downloadOnce(r.url)
             } catch let error as URLError where error.code != .cancelled && attempt < 20 {
                 lastResumeData = error.downloadTaskResumeData ?? lastResumeData
-                HengeLog.log("install", "download interrupted (\(error.localizedDescription)); resuming")
+                HengeLog.log("install", "下载中断（\(error.localizedDescription)），正在续传")
                 try await Task.sleep(nanoseconds: 3_000_000_000)
             }
         }
-        throw message("The download kept failing.")
+        throw message("下载一直失败。")
     }
 
     private func downloadOnce(_ url: URL) async throws -> URL {
@@ -172,27 +172,27 @@ final class Installer: NSObject, ObservableObject {
         Machines.excludeFromBackup(Machines.root)
         try? fm.removeItem(at: mac.rom)
         try fm.copyItem(at: rom, to: mac.rom)
-        guard fm.createFile(atPath: mac.disk.path, contents: nil) else { throw message("Cannot create the disk.") }
+        guard fm.createFile(atPath: mac.disk.path, contents: nil) else { throw message("无法创建磁盘。") }
         let h = try FileHandle(forWritingTo: mac.disk)
         try h.truncate(atOffset: UInt64(64) << 30) // sparse: blocks are only used as macOS writes them
         try h.close()
-        guard henge_make_aux(mac.aux.path) == 0 else { throw message("Cannot create the auxiliary storage.") }
+        guard henge_make_aux(mac.aux.path) == 0 else { throw message("无法创建辅助存储。") }
         let info: [String: Any] = ["name": name, "ecid": ecid, "seed": 0, "ramMB": ramMB]
         try JSONSerialization.data(withJSONObject: info).write(to: mac.directory.appendingPathComponent("machine.json"))
         mac.diskBytes = 64 << 30
-        HengeLog.log("install", "new machine \(name): ECID \(ecid), 64 GB disk")
+        HengeLog.log("install", "新的机器 \(name)：ECID \(ecid)，64 GB 磁盘")
         return mac
     }
 
     // MARK: The restore
 
     private func install(_ mac: VirtualMac, ipsw: URL, cpus: Int) async throws {
-        guard JITBootstrap.ready else { throw message("Turn on JIT first: the installer runs the Mac's own restore system, which needs it.") }
+        guard JITBootstrap.ready else { throw message("请先开启 JIT：安装器要运行 Mac 自带的恢复系统，必须用到它。") }
         // The restore needs 2 GB, whatever the Mac is set to use afterwards.
         var restoring = mac
         restoring.ramMB = max(mac.ramMB, 2048)
         let ram = GuestMemory.prepare(restoring)
-        guard ram >= 2048 else { throw message("Installing needs a few more GB of free storage for the Mac's memory.") }
+        guard ram >= 2048 else { throw message("安装还需要几 GB 可用空间来充当 Mac 的内存。") }
         let work = mac.directory.appendingPathComponent("restore", isDirectory: true)
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         var buffer = [CChar](repeating: 0, count: 256)
@@ -204,13 +204,13 @@ final class Installer: NSObject, ObservableObject {
             step = Int(henge_install_step())
             stepProgress = henge_install_progress()
             if step == 100 { break }
-            if step == 101 { throw message("The restore failed. The log (Settings, or Documents/henge.log) says why.") }
+            if step == 101 { throw message("恢复失败。日志（“设置”，或 Documents/henge.log）里写了原因。") }
             if henge_vm_state() == 2 && step < 100 {
                 // The restore ends with the machine restarting, and idevicerestore finishes a
                 // little after; a stop with no result after that is a failure.
                 for _ in 0..<90 where henge_install_step() < 100 { try await Task.sleep(nanoseconds: 1_000_000_000) }
                 if henge_install_step() == 100 { break }
-                throw message("The machine stopped during the restore (\(String(cString: henge_vm_exit_reason()))).")
+                throw message("恢复过程中机器停止了（\(String(cString: henge_vm_exit_reason()))）。")
             }
         }
         if henge_vm_state() == 1 { henge_vm_stop() }
@@ -219,13 +219,13 @@ final class Installer: NSObject, ObservableObject {
 
     static func stepName(_ step: Int) -> String {
         switch step {
-        case 0: return "Finding the Mac"
-        case 1: return "Starting the installer"
-        case 2: return "Writing macOS"
-        case 3: return "Checking macOS"
-        case 4: return "Installing firmware"
-        case 6, 7: return "Installing system files"
-        default: return "Installing"
+        case 0: return "正在查找 Mac"
+        case 1: return "正在启动安装器"
+        case 2: return "正在写入 macOS"
+        case 3: return "正在检查 macOS"
+        case 4: return "正在安装固件"
+        case 6, 7: return "正在安装系统文件"
+        default: return "正在安装"
         }
     }
 
@@ -254,7 +254,7 @@ extension Installer: URLSessionDownloadDelegate {
         let status = (downloadTask.response as? HTTPURLResponse)?.statusCode ?? 0
         do {
             guard let target, status == 200 || status == 206 else {
-                throw NSError(domain: "Henge", code: 3, userInfo: [NSLocalizedDescriptionKey: "Apple's server answered \(status)."])
+                throw NSError(domain: "Henge", code: 3, userInfo: [NSLocalizedDescriptionKey: "Apple 的服务器返回了 \(status)。"])
             }
             try? FileManager.default.removeItem(at: target)
             try FileManager.default.moveItem(at: location, to: target)

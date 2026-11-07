@@ -15,7 +15,7 @@ struct HengeApp: App {
         EngineTuning.apply()
         HengeLog.logFootprint("app-launch")
         JITBootstrap.noteLaunchState()
-        HengeLog.log("app", "increased memory limit: \(Entitlements.increasedMemory ? "yes" : "no"); extended addressing: \(Entitlements.extendedAddressing ? "yes" : "no"); limit \(Entitlements.memoryLimitAtLaunch >> 20) MB")
+        HengeLog.log("app", "更高内存上限：\(Entitlements.increasedMemory ? "yes" : "no")；扩展寻址：\(Entitlements.extendedAddressing ? "yes" : "no")；上限 \(Entitlements.memoryLimitAtLaunch >> 20) MB")
         // Without the guard, a brk no debugger answers kills the app instead of failing.
         JITBootstrap.installTrapGuard()
         try? AVAudioSession.sharedInstance().setCategory(.playback, options: [.mixWithOthers])
@@ -30,7 +30,7 @@ struct HengeApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                .onOpenURL { url in HengeLog.log("app", "opened with \(url.absoluteString)") } // henge:// back from LocalDevVPN
+                .onOpenURL { url in HengeLog.log("app", "通过 \(url.absoluteString) 打开") } // henge:// back from LocalDevVPN
         }
     }
 }
@@ -48,13 +48,13 @@ struct RootView: View {
         ZStack {
             TabView(selection: $tab) {
                 HomeView(running: $running, tab: $tab)
-                    .tabItem { Label("Macs", systemImage: "macwindow") }
+                    .tabItem { Label("Mac", systemImage: "macwindow") }
                     .tag(Tab.macs)
                 InstallView()
-                    .tabItem { Label("Install", systemImage: "arrow.down.circle") }
+                    .tabItem { Label("安装", systemImage: "arrow.down.circle") }
                     .tag(Tab.install)
                 SettingsView()
-                    .tabItem { Label("Settings", systemImage: "gearshape") }
+                    .tabItem { Label("设置", systemImage: "gearshape") }
                     .tag(Tab.settings)
             }
             .tint(Desk.accentLight)

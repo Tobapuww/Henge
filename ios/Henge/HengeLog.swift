@@ -104,10 +104,10 @@ enum HengeLog {
 
         let lines = text.split(separator: "\n", omittingEmptySubsequences: true).suffix(40)
         guard !lines.isEmpty else { return }
-        log("prev", "---- last \(lines.count) lines from the previous run "
-                  + "(the one that may have crashed) ----")
+        log("prev", "---- 上次运行的最后 \(lines.count) 行 "
+                  + "（就是可能崩溃的那次）----")
         for line in lines { log("prev", String(line)) }
-        log("prev", "---- end of the previous run ----")
+        log("prev", "---- 上次运行到此结束 ----")
     }
 
     /// QEMU's own stderr, this run and the one before it.
@@ -154,11 +154,11 @@ enum HengeLog {
         pipeWriteFD = open(cURL.path, O_CREAT | O_WRONLY | O_TRUNC, 0o644)
         pipeReadFD = open(cURL.path, O_RDONLY)
         guard pipeWriteFD >= 0, pipeReadFD >= 0 else {
-            log("boot", "WARNING: could not open henge-native.log (errno \(errno)); "
-                      + "C-side stderr will not be captured")
+            log("boot", "警告：无法打开 henge-native.log（errno \(errno)）；"
+                      + "C 层的 stderr 将不会被捕获")
             return
         }
-        log("boot", "native stderr -> henge-native.log (mirrored here)")
+        log("boot", "C 层 stderr -> henge-native.log（同时显示在这里）")
 
         if let mode = ProcessInfo.processInfo.environment["HV_LOG_CONSOLE"], !mode.isEmpty {
             consoleFD = dup(STDERR_FILENO)
@@ -215,7 +215,7 @@ enum HengeLog {
             signal(sig) { received in
                 // Async-signal-safe only: write(2) straight to the fds, no
                 // allocation, no locks, no Swift runtime.
-                let msg = "\n*** FATAL SIGNAL \(received) -- process is dying ***\n"
+                let msg = "\n*** 致命信号 \(received) —— 进程即将退出 ***\n"
                 msg.withCString { p in
                     let n = strlen(p)
                     if HengeLog.rawLogFD >= 0 { _ = write(HengeLog.rawLogFD, p, n) }
@@ -274,12 +274,12 @@ enum HengeLog {
             }
         }
         NSSetUncaughtExceptionHandler { ex in
-            HengeLog.log("crash", "uncaught exception: \(ex.name.rawValue) -- \(ex.reason ?? "")")
+            HengeLog.log("crash", "未捕获的异常：\(ex.name.rawValue) -- \(ex.reason ?? "")")
             HengeLog.log("crash", ex.callStackSymbols.prefix(20).joined(separator: " | "))
             HengeLog.flushNow()
         }
-        log("boot", "crash handlers installed (SEGV/ABRT/ILL/FPE/SYS; "
-                  + "TRAP+BUS left to the JIT guard; SIGPIPE ignored)")
+        log("boot", "崩溃处理器已安装（SEGV/ABRT/ILL/FPE/SYS；"
+                  + "TRAP+BUS 交给 JIT 守卫；已忽略 SIGPIPE）")
     }
 
     // MARK: - Emitting
@@ -344,13 +344,13 @@ enum HengeLog {
         let model = deviceModel
         let mem = ProcessInfo.processInfo.physicalMemory / (1024 * 1024)
 
-        log("boot", "================ Henge starting ================")
-        log("boot", "device      : \(model)")
-        log("boot", "system      : \(d.systemName) \(d.systemVersion)")
-        log("boot", "physical RAM: \(mem) MiB")
-        log("boot", "processors  : \(ProcessInfo.processInfo.processorCount) "
-                  + "(active \(ProcessInfo.processInfo.activeProcessorCount))")
-        log("boot", "bundle      : \(Bundle.main.bundleIdentifier ?? "?")")
+        log("boot", "================ Henge 启动 ================")
+        log("boot", "设备        : \(model)")
+        log("boot", "系统        : \(d.systemName) \(d.systemVersion)")
+        log("boot", "物理内存    : \(mem) MiB")
+        log("boot", "处理器      : \(ProcessInfo.processInfo.processorCount) "
+                  + "(活跃 \(ProcessInfo.processInfo.activeProcessorCount))")
+        log("boot", "应用包      : \(Bundle.main.bundleIdentifier ?? "?")")
         // Which build this is, in the log itself.
         //
         // Without this a log cannot be told apart from one produced by an older
@@ -362,12 +362,12 @@ enum HengeLog {
         let build   = info["CFBundleVersion"] as? String ?? "?"
         let commit  = info["HengeBuildCommit"] as? String ?? "unstamped"
         let built   = info["HengeBuildDate"] as? String ?? "?"
-        log("boot", "build       : \(version) (\(build)) \(commit) built \(built)")
+        log("boot", "版本        : \(version) (\(build)) \(commit) 构建于 \(built)")
         log("boot", "pid         : \(getpid())")
-        log("boot", "log file    : \(logFileURL.path)")
+        log("boot", "日志文件    : \(logFileURL.path)")
         // Every iOS 27 device except iPad8,11/8,12 enforces TXM, which is what makes
         // the debugger-assisted JIT path mandatory rather than optional.
-        log("boot", "TXM expected: \(Self.expectsTXM(model: model) ? "YES" : "no")")
+        log("boot", "预期 TXM    : \(Self.expectsTXM(model: model) ? "YES" : "no")")
         log("boot", "===============================================")
     }
 

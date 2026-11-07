@@ -42,7 +42,7 @@ struct Trackpad: UIViewRepresentable {
         /// A full-size iPad has more room to move a finger across than a phone does.
         private var speed: CGFloat { traitCollection.horizontalSizeClass == .regular ? 2 : 3 }
 
-        required init?(coder: NSCoder) { fatalError("made in code") }
+        required init?(coder: NSCoder) { fatalError("由代码创建") }
 
         override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
             let touches = touches.filter { $0.type != .indirectPointer }

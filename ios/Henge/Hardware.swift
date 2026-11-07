@@ -46,8 +46,8 @@ enum Device {
 
     /// What a choice risks on this device, if anything. An install always gets at least 2 GB (Installer.install).
     static func memoryNote(_ gb: Int) -> String? {
-        if gb < 4 { return "macOS has little room under 4 GB, so it can be very slow." }
-        if gb > suggestedRAMGB { return "More than \(suggestedRAMGB) GB is a lot for this \(name): iOS may close Henge when macOS gets busy." }
+        if gb < 4 { return "低于 4 GB 时 macOS 可用的空间很少，可能会非常慢。" }
+        if gb > suggestedRAMGB { return "超过 \(suggestedRAMGB) GB 对这台\(name)来说负担偏重：macOS 一忙起来，iOS 可能会关掉 Henge。" }
         return nil
     }
 
@@ -60,7 +60,7 @@ enum Device {
         return major < 13
     }()
 
-    static let chipTooOldText = "macOS won't run on this \(name). Henge needs an A14 or M1 chip or newer."
+    static let chipTooOldText = "这台\(name)无法运行 macOS。Henge 需要 A14 或 M1 及更新一代的芯片。"
 }
 
 /// A keyboard attached to the device. iOS reports each key going down and coming up by its HID usage,
@@ -179,7 +179,7 @@ final class HardwareMouse {
         })
         observers.append(NotificationCenter.default.addObserver(forName: UIPointerLockState.didChangeNotification, object: nil, queue: .main) { note in
             let locked = (note.object as? UIScene)?.pointerLockState?.isLocked ?? false
-            HengeLog.log("input", "pointer lock: \(locked ? "on" : "off")")
+            HengeLog.log("input", "指针锁定：\(locked ? "on" : "off")")
         })
         PointerLock.set(true)
     }
@@ -208,7 +208,7 @@ final class HardwareMouse {
     private func attach(_ mouse: GCMouse) {
         guard let input = mouse.mouseInput, !mice.contains(where: { $0 === mouse }) else { return }
         mice.append(mouse)
-        HengeLog.log("input", "mouse: \(mouse.vendorName ?? "?"), right button \(input.rightButton != nil), middle \(input.middleButton != nil)")
+        HengeLog.log("input", "mouse: \(mouse.vendorName ?? "?")，右键 \(input.rightButton != nil)，中键 \(input.middleButton != nil)")
         input.mouseMovedHandler = { [weak self] _, dx, dy in self?.moved(dx, dy) }
         input.leftButton.pressedChangedHandler = { [weak self] _, _, pressed in self?.button(0, pressed) }
         input.rightButton?.pressedChangedHandler = { [weak self] _, _, pressed in self?.button(1, pressed) }
@@ -261,7 +261,7 @@ final class HardwareMouse {
         let vertical = way * Self.wheelUnits(verticalRaw, scale: scale)
         if scrollsLogged < 24 {
             scrollsLogged += 1
-            HengeLog.log("input", "scroll raw: \(first), \(second); units: \(horizontal), \(vertical)")
+            HengeLog.log("input", "滚动原始值：\(first)、\(second)；单位：\(horizontal)、\(vertical)")
         }
         if horizontal != 0 || vertical != 0 { henge_vm_mouse_scroll(horizontal, vertical) }
     }

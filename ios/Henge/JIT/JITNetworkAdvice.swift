@@ -68,19 +68,19 @@ enum JITNetworkAdvice {
         guard let problem = JITConnectionProblem(helperMessage: helperMessage) else { return nil }
         if problem == .pairing {
             return JITAdvice(
-                message: "This device closed the connection, which usually means it no longer accepts "
-                       + "Henge's pairing. Pair again, and check that LocalDevVPN is connected.",
+                message: "这台设备关闭了连接，通常意味着它不再接受 "
+                       + "Henge 的配对。请重新配对，并确认 LocalDevVPN 已连接。",
                 actions: [.pairAgain, .connectLocalDevVPN])
         }
         guard situation == .cellularOnly else {
-            return JITAdvice(message: "Henge couldn't reach this device. Connect LocalDevVPN, then try again.",
+            return JITAdvice(message: "Henge 连不上这台设备。请连接 LocalDevVPN 后再试。",
                              actions: [.connectLocalDevVPN])
         }
         return JITAdvice(
-            message: "LocalDevVPN can show Connected while iOS still sends Henge's connection over cellular. "
-                   + "Turn Cellular Data off in Control Center, wait 2 seconds, then turn it back on. "
-                   + "Or join any Wi-Fi once; a hotspot works. "
-                   + "Keep LocalDevVPN connected, turn off other VPNs such as Tailscale, then try again.",
+            message: "LocalDevVPN 可能显示“已连接”，而 iOS 仍把 Henge 的连接走蜂窝网络发出。"
+                   + "请在控制中心关闭蜂窝数据，等 2 秒后再打开。"
+                   + "或者先连接一次任意 Wi-Fi，热点也可以。"
+                   + "请让 LocalDevVPN 保持连接，关掉 Tailscale 等其他 VPN 后再试。",
             actions: [.connectLocalDevVPN])
     }
 }
@@ -100,7 +100,7 @@ enum JITRetryPolicy {
 
     /// Shown while waiting to try attempt `nextAttempt` (the first retry is attempt 2).
     static func statusText(nextAttempt: Int) -> String {
-        "Retrying over LocalDevVPN (\(nextAttempt) of \(maxAttempts))…"
+        "正在通过 LocalDevVPN 重试（第 \(nextAttempt) 次，共 \(maxAttempts) 次）……"
     }
 
     static func decision(situation: NetworkSituation, problem: JITConnectionProblem, attempt: Int) -> JITRetryDecision {

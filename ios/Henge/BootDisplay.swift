@@ -96,7 +96,7 @@ private struct GPUScreen: UIViewRepresentable {
             layer.isOpaque = false
         }
 
-        required init?(coder: NSCoder) { fatalError("made in code") }
+        required init?(coder: NSCoder) { fatalError("由代码创建") }
 
         override func didMoveToWindow() {
             super.didMoveToWindow()

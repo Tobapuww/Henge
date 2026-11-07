@@ -41,7 +41,7 @@ enum GuestMemory {
         let room = free > 0 ? UInt64(max(free - (2 << 30), 0)) >> 20 : UInt64.max
         let reach = henge_largest_mapping_mb()
         let ram = min(UInt64(mac.ramMB), room, reach > 512 ? reach - 512 : 0) / 512 * 512
-        HengeLog.log("session", "guest RAM \(ram) MB (asked \(mac.ramMB), disk room \(room), largest mapping \(reach))")
+        HengeLog.log("session", "客户机内存 \(ram) MB（请求 \(mac.ramMB)，磁盘余量 \(room)，最大映射 \(reach)）")
         return ram
     }
 }
@@ -90,7 +90,7 @@ final class Machines: ObservableObject {
         let items = (try? FileManager.default.contentsOfDirectory(at: Self.root, includingPropertiesForKeys: nil)) ?? []
         for item in items {
             guard let id = UUID(uuidString: item.lastPathComponent), !known.contains(id) else { continue }
-            HengeLog.log("machines", "removing the unfinished machine \(id)")
+            HengeLog.log("machines", "正在移除未完成的机器 \(id)")
             try? FileManager.default.removeItem(at: item)
         }
     }
@@ -130,7 +130,7 @@ final class Machines: ObservableObject {
             let data = try Data(contentsOf: folder.appendingPathComponent("machine.json"))
             let info = try JSONDecoder().decode(MachineFile.self, from: data)
             let missing = Self.required.filter { !FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
-            guard missing.isEmpty, Self.hasDisk(folder) else { throw message("The folder is missing \((missing + (Self.hasDisk(folder) ? [] : ["disk.img"])).joined(separator: ", ")).") }
+            guard missing.isEmpty, Self.hasDisk(folder) else { throw message("这个文件夹缺少 \((missing + (Self.hasDisk(folder) ? [] : ["disk.img"])).joined(separator: "、"))。") }
             var mac = VirtualMac(name: info.name ?? folder.lastPathComponent, ecid: info.ecid, seed: info.seed ?? 0,
                                  ramMB: info.ramMB ?? 2048, diskBytes: 0)
             importing = mac.name
@@ -155,7 +155,7 @@ final class Machines: ObservableObject {
                         Task { @MainActor in Machines.shared.unpacked = fraction }
                     }, nil) == 0
                 }.value
-                guard ok else { try? fm.removeItem(at: dest); throw message("The packed disk could not be unpacked (not enough space?).") }
+                guard ok else { try? fm.removeItem(at: dest); throw message("无法解包压缩的磁盘（是不是空间不够了？）") }
                 if move { try? fm.removeItem(at: packed) }
             }
             if move { try? fm.removeItem(at: folder) }
@@ -165,7 +165,7 @@ final class Machines: ObservableObject {
             HengeLog.log("machines", "imported \(mac.name) (ECID \(mac.ecid), \(mac.diskBytes >> 30) GB disk)")
         } catch {
             lastError = error.localizedDescription
-            HengeLog.log("machines", "import of \(folder.lastPathComponent) failed: \(error.localizedDescription)")
+            HengeLog.log("machines", "导入 \(folder.lastPathComponent) 失败：\(error.localizedDescription)")
         }
         importing = nil
     }
@@ -187,7 +187,7 @@ final class Machines: ObservableObject {
             }
             do { lastExport = try await writeExport(mac) } catch {
                 lastError = error.localizedDescription
-                HengeLog.log("machines", "export of \(mac.name) failed: \(error.localizedDescription)")
+                HengeLog.log("machines", "导出 \(mac.name) 失败：\(error.localizedDescription)")
             }
         }
     }
@@ -205,7 +205,7 @@ final class Machines: ObservableObject {
         let free = (try? Self.root.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?.volumeAvailableCapacityForImportantUsage ?? 0
         let needed = Int64(used) + (256 << 20)
         if free > 0 && free < needed {
-            throw message("Exporting \(mac.name) needs about \(ByteText.string(UInt64(needed))) free; this \(Device.name) has \(ByteText.string(UInt64(free))). Deleting a downloaded macOS installer (Install macOS, swipe it) frees about 16 GB.")
+            throw message("导出 \(mac.name) 大约需要 \(ByteText.string(UInt64(needed))) 可用空间，而这台\(Device.name)只剩 \(ByteText.string(UInt64(free)))。删除已下载的 macOS 安装包（在“安装 macOS”里向左滑动即可删除）可释放约 16 GB。")
         }
         try fm.createDirectory(at: partial, withIntermediateDirectories: true)
         do {
@@ -220,7 +220,7 @@ final class Machines: ObservableObject {
                     Task { @MainActor in Machines.shared.exported = fraction }
                 }, nil) == 0
             }.value
-            guard ok else { throw message("The disk could not be written (not enough space?).") }
+            guard ok else { throw message("无法写入磁盘（是不是空间不够了？）") }
             try fm.moveItem(at: partial, to: final)
         } catch {
             try? fm.removeItem(at: partial)

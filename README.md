@@ -4,16 +4,16 @@
 
 <h1 align="center">Henge</h1>
 
-<p align="center">macOS on your iPhone and iPad.</p>
+<p align="center">在 iPhone 和 iPad 上运行 macOS。</p>
 
 <p align="center">
-  <a href="#install">Install</a>
+  <a href="#安装">安装</a>
   ·
-  <a href="docs/architecture.md">How it works</a>
+  <a href="docs/architecture.md">工作原理</a>
   ·
-  <a href="https://itslevii.dev">Website</a>
+  <a href="https://itslevii.dev">网站</a>
   ·
-  <a href="https://github.com/Leviidev/Henge/releases">Releases</a>
+  <a href="https://github.com/Leviidev/Henge/releases">发行版</a>
 </p>
 
 <p align="center">
@@ -21,64 +21,64 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Leviidev/Henge?style=flat-square&color=2E6BFF&labelColor=111111" alt="GPL-2.0-or-later"></a>
 </p>
 
-Download macOS, install it on the device, and use it.
+下载 macOS，把它装到设备上，然后直接用。
 
-- **Own emulator** — iOS gives apps no hypervisor, so Henge runs the Mac's arm64 code through its own JIT, with its own MMU and devices. It doesn't use QEMU or Virtualization.framework.
-- **Installs on the device** — Henge downloads Apple's restore image and restores it the way a Mac does. No Mac needed, and nothing is decrypted or patched.
-- **Graphics** — macOS draws through a virtual GPU, and Henge replays its commands with Metal. Safari and Electron apps like Discord draw on it.
-- **Touch** — The screen is a trackpad: hold to drag, two fingers to scroll. Esc, Tab, Control, Option and Command sit above the keyboard.
-- **Keyboard and mouse** — On iPad, a Magic Keyboard or a Bluetooth keyboard and mouse drive the Mac directly.
-- **External display** — During a Mac session, connect a display with a video-capable USB-C cable or a USB-C/HDMI dock. The mode activates automatically: the monitor shows the Mac, while the iPhone or iPad keeps its trackpad and keyboard controls. Disconnect to return the image to the device. The existing guest resolution is preserved. On iOS 17–26 the same happens through an older iOS route, not yet tried on hardware; outside a Mac session the display mirrors the device. USB-C video is user-confirmed on an iPhone 17 Pro running iOS 27 (development build 0.1/2).
-- **Sharing** — Copy and paste between macOS and the device, and a shared folder that shows up in Files and on the Mac.
-- **Fits the screen** — On iPad, a new Mac gets a screen the shape of the iPad's, so there are no black bars.
+- **自研模拟器** —— iOS 不给 App 提供 hypervisor，所以 Henge 用自己的 JIT、自己的 MMU 和自己的设备来运行 Mac 的 arm64 代码。它没有使用 QEMU，也没有使用 Virtualization.framework。
+- **在设备上直接安装** —— Henge 会下载 Apple 的恢复镜像，并像真正的 Mac 那样恢复它。不需要 Mac，也不会解密或修改任何东西。
+- **图形** —— macOS 通过一块虚拟 GPU 绘制，Henge 用 Metal 重放它的命令。Safari 和 Discord 这类 Electron 应用都能正常显示。
+- **触控** —— 屏幕就是触控板：按住可拖拽，双指可滚动。Esc、Tab、Control、Option 和 Command 位于键盘上方。
+- **键盘与鼠标** —— 在 iPad 上，妙控键盘或蓝牙键盘和鼠标可以直接操控这台 Mac。
+- **外接显示器** —— 在 Mac 会话期间，用支持视频传输的 USB-C 线或 USB-C/HDMI 扩展坞连接显示器。该模式会自动启用：显示器显示这台 Mac，而 iPhone 或 iPad 仍保留触控板和键盘控制。断开连接后画面回到设备上。客户机已有的分辨率会保留。在 iOS 17–26 上，同样的功能通过一条较早的 iOS 路径实现，但尚未在真机上验证；在 Mac 会话之外，显示器只是镜像设备画面。USB-C 视频输出已在运行 iOS 27 的 iPhone 17 Pro 上由用户确认可用（开发版 0.1/2）。
+- **共享** —— 在 macOS 与设备之间复制粘贴，并有一个在“文件”和 Mac 上都能看到的共享文件夹。
+- **贴合屏幕** —— 在 iPad 上，新建的 Mac 会得到与 iPad 形状相同的屏幕，因此不会出现黑边。
 
-On an iPhone 17 Pro, macOS reaches the lock screen in about 15 seconds. Discord installs, opens in about 15 seconds, logs in and sends messages.
+在 iPhone 17 Pro 上，macOS 大约 15 秒进入锁屏界面。Discord 可以安装，约 15 秒打开，能登录并发送消息。
 
-## Install
+## 安装
 
-Sideload `Henge.ipa` from [Releases](https://github.com/Leviidev/Henge/releases) with SideStore or AltStore, or install `Henge.tipa` with TrollStore or TrollStore Lite. iOS or iPadOS 17 or later, on an A14 or M1 chip or newer. So far it's tested only on an iPhone 17 Pro: iPad support is new and hasn't run on a real iPad yet.
+用 SideStore 或 AltStore 侧载 [发行版](https://github.com/Leviidev/Henge/releases) 中的 `Henge.ipa`，或用 TrollStore、TrollStore Lite 安装 `Henge.tipa`。需要 iOS 或 iPadOS 17 及以上，且芯片为 A14 或 M1 及更新型号。目前只在 iPhone 17 Pro 上测试过：iPad 支持是新加的，还没有在真正的 iPad 上运行过。
 
-- **JIT** is required: StikDebug, TrollStore (which stops at iOS 17.0), TrollStore Lite (which needs a jailbreak), a jailbreak on its own, or the StikJIT helper built into Henge (iOS 26 or later).
-- **Storage:** about 43 GB free for macOS Sequoia. That's 17 GB for the download, which you can delete afterwards, and 26 GB for the Mac.
-- **Memory:** a Mac gets 4, 6 or 8 GB. Sign Henge with the increased memory limit entitlement if your certificate has it.
+- **必须开启 JIT**：StikDebug、TrollStore（仅支持到 iOS 17.0）、TrollStore Lite（需要越狱）、单独越狱，或者 Henge 内置的 StikJIT 辅助程序（iOS 26 及以上）。
+- **存储**：macOS Sequoia 大约需要 43 GB 可用空间。其中 17 GB 是下载的镜像，装完之后可以删掉，另外 26 GB 归这台 Mac。
+- **内存**：一台 Mac 可分到 4、6 或 8 GB。如果你的证书带有“更高内存上限”授权，请用它给 Henge 签名。
 
-Then open the Install tab, pick macOS Sequoia 15.6.1, and keep Henge open with the device plugged in. Tahoe 26.6.2 and macOS 27.2 are offered too, but they aren't tested yet.
+然后打开“安装”标签页，选择 macOS Sequoia 15.6.1，并保持 Henge 打开、设备插着电。Tahoe 26.6.2 和 macOS 27.2 也可以选，但尚未测试。
 
-## Sharing with the Mac
+## 与 Mac 共享
 
-Do this once for each Mac: open Terminal on the Mac, then in Henge open Details and tap **Type the Set Up Command**. Press Return on the Mac, and choose Allow when macOS asks about `henge-agent` and local networks. It needs the Mac's keyboard layout to be U.S.
+每台 Mac 只需做一次：在这台 Mac 上打开“终端”，然后在 Henge 中打开“详情”，点 **键入设置命令**。在 Mac 上按 Return 键，当 macOS 询问 `henge-agent` 和本地网络的权限时选择“允许”。这要求 Mac 的键盘布局为美式。
 
-Then a Henge folder in the Mac's home folder is the same folder as Files › Henge › Shared. What you copy on the Mac is copied on the device too, and the paste button pastes from the device into the Mac.
+之后，Mac 个人文件夹里的 Henge 文件夹就等同于“文件 › Henge › 共享”。在 Mac 上复制的内容也会复制到设备上，而“粘贴”按钮会把设备上的内容粘贴到 Mac 上。
 
-## Known limits
+## 已知限制
 
-- Signing in to an Apple Account inside macOS fails with a verification error.
-- Graphics are tested on macOS's own apps, Chrome, Firefox, VS Code and Discord. Other apps may draw wrongly.
-- For the first few minutes after you log in, macOS is busy starting up in the background, so apps open more slowly.
-- Only one Mac can start per launch. Quit Henge and open it again to start another, and to start one again after restarting or shutting down macOS.
-- iPadOS keeps some keyboard shortcuts for itself, such as Command-Tab.
-- It's emulation, so it runs slower than a real Mac.
+- 在 macOS 内登录 Apple 账号会失败，提示验证错误。
+- 图形只在 macOS 自带应用、Chrome、Firefox、VS Code 和 Discord 上测试过。其他应用可能绘制异常。
+- 登录后的前几分钟，macOS 会在后台忙着启动，因此应用打开得比较慢。
+- 每次启动 Henge 只能运行一台 Mac。要再启动一台，或在重启／关机 macOS 之后重新启动，请退出 Henge 再打开。
+- iPadOS 会自己保留一些键盘快捷键，例如 Command-Tab。
+- 这是模拟运行，所以比真正的 Mac 慢。
 
-## Screenshots
+## 截图
 
 <table>
   <tr>
-    <td align="center" colspan="3"><img src="Screenshots/ipad.jpg" alt="Discord on an iPad"><br><sub>iPad</sub></td>
+    <td align="center" colspan="3"><img src="Screenshots/ipad.jpg" alt="iPad 上的 Discord"><br><sub>iPad</sub></td>
   </tr>
   <tr>
     <td align="center" width="33%"><img src="Screenshots/macs.png" alt="Macs"><br><sub>Macs</sub></td>
-    <td align="center" width="33%"><img src="Screenshots/trackpad.png" alt="Trackpad"><br><sub>Trackpad</sub></td>
-    <td align="center" width="33%"><img src="Screenshots/install.png" alt="Install macOS"><br><sub>Install macOS</sub></td>
+    <td align="center" width="33%"><img src="Screenshots/trackpad.png" alt="触控板"><br><sub>触控板</sub></td>
+    <td align="center" width="33%"><img src="Screenshots/install.png" alt="安装 macOS"><br><sub>安装 macOS</sub></td>
   </tr>
 </table>
 
-<sub>Captured on a Mac: the app's own screens with sample data, at iPad and iPhone sizes, showing a frame from Henge's renderer.</sub>
+<sub>在 Mac 上截图：App 自身的界面配上示例数据，包含 iPad 和 iPhone 两种尺寸，画面来自 Henge 的渲染器。</sub>
 
-## Building
+## 构建
 
-**`main` is between releases and won't build from source.** Work in progress lives there until it's ready, and the file that completes it comes with each release. To use Henge, install the [latest release](https://github.com/Leviidev/Henge/releases); to build it yourself, check out a release tag.
+**`main` 处在两次发行之间，无法直接从源码构建。** 正在开发的内容都放在这里，等它完成后，补齐它的那个文件会随每次发行一起提供。想用 Henge 请安装[最新发行版](https://github.com/Leviidev/Henge/releases)；想自己构建请检出某个发行标签。
 
-On a Mac with Xcode 27 or later and `xcodegen`. Henge takes StikJIT, on-device pairing, libslirp and glib from a built [Husk](https://github.com/Leviidev/Husk) checkout at `~/Documents/Coding/Husk` (set `HUSK` to use another path):
+需要装有 Xcode 27 或更高版本的 Mac，以及 `xcodegen`。Henge 从位于 `~/Documents/Coding/Husk` 的、已构建好的 [Husk](https://github.com/Leviidev/Husk) 检出中获取 StikJIT、设备端配对、libslirp 和 glib（可通过设置 `HUSK` 指定其他路径）：
 
 ```bash
 ios/scripts/fetch_deps.sh
@@ -87,12 +87,12 @@ make ios-lib
 ios/scripts/package_ipa.sh
 ```
 
-That produces `~/Desktop/Henge.ipa`, and `package_ipa.sh --trollstore` writes `Henge.tipa`.
+以上会生成 `~/Desktop/Henge.ipa`，而 `package_ipa.sh --trollstore` 会写出 `Henge.tipa`。
 
-`make` builds the engine for the Mac, `build/hengevm`, and `make test` runs its tests.
+`make` 会为 Mac 构建引擎 `build/hengevm`，`make test` 会运行它的测试。
 
-## Licence
+## 许可
 
-GPL-2.0-or-later. Henge compiles in usbmuxd (GPLv2 or GPLv3) and code from Husk (GPL-2.0-or-later), so the shipped binary is a combined GPL work. It cannot go on the App Store. See [docs/licensing.md](docs/licensing.md).
+GPL-2.0-or-later。Henge 编译进了 usbmuxd（GPLv2 或 GPLv3）以及来自 Husk 的代码（GPL-2.0-or-later），因此发布的二进制属于 GPL 合并作品。它不能上架 App Store。详见 [docs/licensing.md](docs/licensing.md)。
 
-macOS and the Mac's boot ROM are Apple's and aren't part of Henge. Henge downloads both from Apple when you install.
+macOS 和 Mac 的启动 ROM 属于 Apple，不属于 Henge。安装时 Henge 会从 Apple 下载这两者。

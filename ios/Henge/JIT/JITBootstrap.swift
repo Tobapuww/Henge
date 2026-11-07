@@ -38,10 +38,10 @@ enum JITBootstrap {
     /// Without this, a `brk` that StikDebug is not there to service is a fatal
     /// SIGTRAP rather than a failed call — the process simply dies.
     static func installTrapGuard() {
-        HengeLog.log("jit", "installing brk trap guard")
+        HengeLog.log("jit", "正在安装 brk 陷阱守卫")
         henge_ios_jit_install_trap_handler()
-        HengeLog.log("jit", "trap guard installed -- an unserviced brk will now "
-                         + "return 0 instead of killing the process")
+        HengeLog.log("jit", "陷阱守卫已安装 -- 无人处理的 brk 现在会 "
+                         + "返回 0，而不是杀掉进程")
     }
 
     /// Size QEMU will ask for. Must match tb-size in the phase 1 command line:
@@ -82,7 +82,7 @@ enum JITBootstrap {
         // so it does not wait for CS_DEBUGGED there if jailbroken: Dopamine hides that flag from apps unless
         // "Allow JIT in Apps" is on, while still letting them run code they wrote.
         guard isDebuggerAttached || (canGrantOwnJIT && !selfGrantTried) else {
-            HengeLog.log("jit", "no debugger attached yet; not prewarming")
+            HengeLog.log("jit", "尚未附加调试器，不预先申请 JIT")
             return false
         }
         if !isDebuggerAttached { selfGrantTried = true }
@@ -93,25 +93,25 @@ enum JITBootstrap {
         if canGrantOwnJIT && !stikDebugMayServiceTraps {
             selfGrantTried = true
             if mapJITWorks {
-                HengeLog.log("jit", "not trapping for a JIT region (no StikDebug); MAP_JIT executes here")
+                HengeLog.log("jit", "不为 JIT 区域设置陷阱（无 StikDebug）；这里 MAP_JIT 可执行")
                 lastFailure = nil
                 return true
             }
             // MAP_JIT refused (no dynamic-codesigning after all, or Dopamine): plain memory made executable, which a debugged
             // process or a jailbreak allows -- made here, with no brk for an attach that answers none (#148)
-            HengeLog.log("jit", "not trapping for a JIT region (no StikDebug); MAP_JIT does not execute here, trying plain memory")
+            HengeLog.log("jit", "不为 JIT 区域设置陷阱（无 StikDebug）；这里 MAP_JIT 不可执行，改用普通内存")
             prepareCompressedHeap()
             if henge_ios_jit_prewarm_self(jitBytes) {
                 prewarmed = true
                 lastFailure = nil
-                HengeLog.log("jit", "JIT region made by Henge itself (\(henge_ios_jit_self_route().map { String(cString: $0) } ?? "self"))")
+                HengeLog.log("jit", "JIT 区域由 Henge 自行创建（\(henge_ios_jit_self_route().map { String(cString: $0) } ?? "self")）")
                 return true
             }
             releaseUnusedCompressedHeap()
             return false
         }
-        HengeLog.log("jit", "claiming \(jitBytes / (1024 * 1024)) MiB of JIT memory now, "
-                         + "before the guest download -- StikDebug does not stay attached")
+        HengeLog.log("jit", "现在申请 \(jitBytes / (1024 * 1024)) MiB JIT 内存，"
+                         + "赶在客户机下载之前 -- StikDebug 不会一直保持附加")
         prepareCompressedHeap()
         let ok = henge_ios_jit_prewarm(jitBytes)
         if !ok { releaseUnusedCompressedHeap() }
@@ -125,19 +125,19 @@ enum JITBootstrap {
             // iOS that does not need a trap servicer. QEMU maps its own buffer
             // with MAP_JIT a moment later and runs exactly as well.
             lastFailure = nil
-            HengeLog.log("jit", "no trap servicer, but MAP_JIT executes here -- "
-                             + "QEMU will map its own buffer")
+            HengeLog.log("jit", "没有陷阱处理程序，但这里 MAP_JIT 可执行 -- "
+                             + "QEMU 会映射自己的缓冲区")
         } else {
-            lastFailure = "The debugger is attached but is not answering trap "
-                        + "requests, and this device will not execute a MAP_JIT "
-                        + "mapping either, so no executable memory could be "
-                        + "claimed. This happens when Henge was opened from StikDebug's "
-                        + "app list, which attaches without Henge's script: open Henge "
-                        + "from the Home Screen and tap Turn On JIT. It also happens "
-                        + "inside another container app."
+            lastFailure = "调试器虽然已经附加，却没有回应陷阱请求，"
+                        + "而这台设备也不执行 MAP_JIT 映射，"
+                        + "所以无法取得任何可执行内存。"
+                        + "这种情况常见于从 StikDebug 的 App 列表打开 Henge："
+                        + "它会附加，但不加载 Henge 的脚本。请从主屏幕打开 Henge，"
+                        + "再点“开启 JIT”。在别的容器 App 里打开也会这样。"
+                        + "请重新安装 Henge 试试。"
         }
-        HengeLog.log("jit", ok ? "JIT region secured; it will be handed to QEMU later"
-                              : "JIT prewarm FAILED -- StikDebug is not servicing traps")
+        HengeLog.log("jit", ok ? "JIT 区域已就绪，稍后会交给 QEMU"
+                              : "JIT 预热失败 -- StikDebug 没有处理陷阱")
         return ok
     }
 
@@ -183,8 +183,8 @@ enum JITBootstrap {
     /// needed for anything, and leaving it attached is what froze the app.
     private static func detachIfDone() {
         guard prewarmed, !detached, !keepDebuggerAttached else { return }
-        HengeLog.log("jit", "JIT region held; detaching StikDebug so a suspended "
-                         + "debugger cannot stall the process later")
+        HengeLog.log("jit", "JIT 区域已持有；正在断开 StikDebug，以免被挂起的 "
+                         + "调试器之后拖住进程")
         henge_ios_jit_detach()
         detached = true
     }
@@ -215,7 +215,7 @@ enum JITBootstrap {
         if let known = mapJITResult { return known }
         let result: Bool
         if deviceEnforcesTXM {
-            HengeLog.log("jit", "TXM device: MAP_JIT cannot execute here, not probing")
+            HengeLog.log("jit", "TXM 设备：这里 MAP_JIT 不可执行，不再试探")
             result = false
         } else {
             result = henge_ios_jit_mapjit_works()
@@ -243,7 +243,7 @@ enum JITBootstrap {
     /// its answer is immediately acted on.
     static var isDebuggerAttached: Bool {
         guard let flags = csStatus() else {
-            HengeLog.log("jit", "csops failed (errno \(errno)); assuming no debugger")
+            HengeLog.log("jit", "csops 失败（errno \(errno)），按没有调试器处理")
             return false
         }
         let attached = (flags & CS_DEBUGGED) != 0
@@ -283,7 +283,7 @@ enum JITBootstrap {
         let launch = unsafeBitCast(sym, to: Launch.self)
         for id in ["com.opa334.TrollStore", "com.opa334.TrollStoreLite"] {
             let r = launch(id as NSString, nil, nil, nil, true)
-            HengeLog.log("jit", "SpringBoard on opening \(id): \(r)")
+            HengeLog.log("jit", "SpringBoard 打开 \(id)：\(r)")
             if r == 9 { return true }
         }
         return false
@@ -327,26 +327,26 @@ enum JITBootstrap {
     /// this point happens in a *new* foreground pass of the app.
     @MainActor
     static func requestTrollStoreAttach() -> Bool {
-        HengeLog.log("jit", "requestTrollStoreAttach() -- handing off to TrollStore")
+        HengeLog.log("jit", "requestTrollStoreAttach() -- 交给 TrollStore")
         guard let bundleID = Bundle.main.bundleIdentifier else { return false }
         
         let url = "apple-magnifier://enable-jit?bundle-id=\(bundleID)"
         guard isTrollStoreInstalled, let launchURL = URL(string: url) else {
-            HengeLog.log("jit", "FAIL: TrollStore is not installed")
+            HengeLog.log("jit", "失败：没有安装 TrollStore")
             return false
         }
         
-        HengeLog.log("jit", "opening apple-magnifier:// for bundle \(bundleID)")
+        HengeLog.log("jit", "正在为应用包 \(bundleID) 打开 apple-magnifier://")
         UIApplication.shared.open(launchURL)
         return true
     }
 
     @MainActor
     static func requestAttach() -> Bool {
-        HengeLog.log("jit", "requestAttach() -- handing off to StikDebug")
+        HengeLog.log("jit", "requestAttach() -- 交给 StikDebug")
 
         guard let bundleID = Bundle.main.bundleIdentifier else {
-            HengeLog.log("jit", "FAIL: no bundle identifier")
+            HengeLog.log("jit", "失败：没有应用包标识符")
             return false
         }
 
@@ -359,28 +359,28 @@ enum JITBootstrap {
         // script-data unconditionally (HomeView.handleExternalURL), so we do not
         // depend on the user having assigned a script to Henge in StikDebug's UI.
         if let script = loadScript(), let encoded = base64URLEncode(script) {
-            HengeLog.log("jit", "loaded henge-jit.js (\(script.count) chars, "
-                             + "\(encoded.count) chars encoded); sending inline")
+            HengeLog.log("jit", "已载入 henge-jit.js（\(script.count) 字符，"
+                             + "编码后 \(encoded.count) 字符），以内联方式发送")
             url += "&script-data=\(encoded)"
         } else {
-            HengeLog.log("jit", "WARNING: could not load henge-jit.js from the bundle. "
-                             + "Falling back to whatever script StikDebug has assigned "
-                             + "to this bundle id -- if none, JIT will not be enabled.")
+            HengeLog.log("jit", "警告：无法从应用包中载入 henge-jit.js。"
+                             + "改用 StikDebug 为这个应用包 "
+                             + "指定的脚本；如果没有指定，JIT 将无法开启。")
         }
 
         guard let launchURL = URL(string: url) else {
-            HengeLog.log("jit", "FAIL: malformed StikDebug URL (\(url.count) chars)")
+            HengeLog.log("jit", "失败：StikDebug URL 格式不对（\(url.count) 字符）")
             return false
         }
 
         // Not canOpenURL first: that needs LSApplicationQueriesSchemes for 'stikjit', which is
         // checked against whichever app iOS actually installed — a container app hosting Henge
         // fails the query even when StikDebug is installed. open() has no such restriction.
-        HengeLog.log("jit", "opening stikjit:// for bundle \(bundleID), pid \(getpid()); "
-                         + "Henge will be backgrounded and relaunched after attach")
+        HengeLog.log("jit", "正在为应用包 \(bundleID) 打开 stikjit://，pid \(getpid())；"
+                         + "附加完成后 Henge 会退到后台并被重新启动")
         UIApplication.shared.open(launchURL, options: [:]) { success in
             if !success {
-                HengeLog.log("jit", "FAIL: open(stikjit://) did not succeed -- StikDebug is not installed")
+                HengeLog.log("jit", "失败：open(stikjit://) 没有成功 -- 没有安装 StikDebug")
             }
         }
         return true
