@@ -1,0 +1,82 @@
+name: Build IPA
+
+# Builds Henge's unsigned, ad-hoc-signed IPA on a macOS runner with Xcode 27
+# (the iOS 27 SDK the sources ask for) and uploads it as an artifact.
+on:
+  push:
+    branches:
+      - 'ci/**'
+      - 'zh/**'
+  workflow_dispatch:
+
+env:
+  HUSK_REV: afe83d45b31194c4cc9f7b3db7ec2c757db8346e
+  HUSK: ${{ github.workspace }}/../Husk
+  IOS_DEPS: ${{ github.workspace }}/../Husk/build/ios-arm64/sysroot
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          for tool in meson ninja pkg-config xcodegen cmake; do
+            command -v "$tool" >/dev/null 2>&1 || brew install "$tool"
+          done
+          if ! command -v rustup >/dev/null 2>&1; then
+            brew install rustup
+          fi
+          export PATH="$HOME/.cargo/bin:$(brew --prefix rustup 2>/dev/null || echo /usr/local)/bin:$PATH"
+          rustup default stable
+          rustup target add aarch64-apple-ios
+
+      - name: Husk dependencies (glib, libslirp, libffi, pairing)
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.cargo/bin:$PATH"
+          git clone --depth 1 https://github.com/Leviidev/Husk.git "$HUSK"
+          git -C "$HUSK" fetch --depth 1 origin "$HUSK_REV"
+          git -C "$HUSK" checkout --detach "$HUSK_REV"
+          cd "$HUSK"
+          ./scripts/fetch_sources.sh
+          ./scripts/build_ios.sh libffi glib libslirp
+          ./scripts/build_rppairing_ios.sh
+          ls -la "$HUSK/build/ios-arm64/sysroot/lib" | head -40
+
+      - name: StikJIT framework
+        run: |
+          set -euo pipefail
+          STIKJIT_ROOT="$RUNNER_TEMP/StikJIT"
+          bash ci/build-stikjit.sh "$STIKJIT_ROOT"
+          rm -rf ios/deps/StikJIT.xcframework
+          mkdir -p ios/deps
+          ditto "$STIKJIT_ROOT/StikJIT.xcframework" ios/deps/StikJIT.xcframework
+
+      - name: iOS prebuilt deps
+        run: ./ios/scripts/fetch_deps.sh
+
+      - name: Engine and installer libraries
+        run: |
+          set -euo pipefail
+          ./tools/build_ios_restore.sh
+          make ios-lib
+          ls -la build/ios/libhengevm.a build/ios/libhengerestore.a
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          ./ios/scripts/package_ipa.sh
+          ls -la "$HOME/Desktop"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Henge-ipa
+          path: ~/Desktop/Henge.ipa
+          if-no-files-found: error
+          retention-days: 14
